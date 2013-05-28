@@ -4,13 +4,20 @@
 # from git server listed in MI_HOME/etc/repos.conf.
 # Joyent 2013.
 
+# Set MI_HOME and get lib
 MI_HOME=$(dirname $(cd ${0%/*} && pwd -P));
-MI_GIT=$(
-MI_REPOS=$(cat ${MI_HOME}/etc/repos.list);
+source ${MI_HOME}/lib/mibe.inc;
 MI_CURR=$(pwd);
 
-for i in ${MI_REPOS[@]}; do
+# Get git server and repos list
+get_gitserver;
+IFS=$'\n'
+get_reposlist;
+
+# Clone repositories in repos.conf 
+for i in ${MI_REPOSLIST[@]}; do
+	[[ "${i}" =~ ^# ]] && continue;
 	[[ -d "${i}" ]] && echo "* ${i} already exists, skipping." && continue;
 	echo "* Cloning $i into ${MI_CURR}/${i}..";
-	git clone git@git.joyent.com:${i}.git
+	git clone ${MI_GITSERVER}:${i}.git
 done

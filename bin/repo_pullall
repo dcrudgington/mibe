@@ -1,0 +1,22 @@
+#!/bin/bash
+#
+# git pulls all repositories listed in MI_HOME/etc/repos.list.
+# Joyent 2013.
+
+# Set MI_HOME and get lib
+MI_HOME=$(dirname $(cd ${0%/*} && pwd -P));
+source ${MI_HOME}/lib/mibe.inc;
+MI_CURR=$(pwd);
+
+# Get git server and repos list
+IFS=$'\n'
+get_reposlist;
+
+# Pull repositories in repos.list
+for i in ${MI_REPOSLIST[@]}; do
+	[[ "${i}" =~ ^# ]] && continue;
+	[[ ! -s "${i}/.git/config" ]] && echo "* ${i} doesn't exist, skipping." && continue;
+	echo "* Pulling $i..";
+	cd ${MI_CURR}/$i && git pull
+	cd ${MI_CURR}
+done
