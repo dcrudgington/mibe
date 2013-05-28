@@ -8,4 +8,4 @@ To get started:
 # git clone https://github.com/dcrudgington/mibe
 # cd mibe/repos
 # repo_cloneall
-<code>
+</code>
