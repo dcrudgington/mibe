@@ -1,0 +1,16 @@
+#!/bin/bash
+#
+# git clones all repositories listed in MI_HOME/etc/repos.list
+# from git server listed in MI_HOME/etc/repos.conf.
+# Joyent 2013.
+
+MI_HOME=$(dirname $(cd ${0%/*} && pwd -P));
+MI_GIT=$(
+MI_REPOS=$(cat ${MI_HOME}/etc/repos.list);
+MI_CURR=$(pwd);
+
+for i in ${MI_REPOS[@]}; do
+	[[ -d "${i}" ]] && echo "* ${i} already exists, skipping." && continue;
+	echo "* Cloning $i into ${MI_CURR}/${i}..";
+	git clone git@git.joyent.com:${i}.git
+done
