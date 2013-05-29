@@ -11,6 +11,10 @@ MI_CURR=$(pwd);
 
 # Get git server and repos list
 get_gitserver;
+echo "${MI_GITSERVER}";
+
+exit 77;
+
 IFS=$'\n'
 get_reposlist;
 
@@ -19,5 +23,6 @@ for i in ${MI_REPOSLIST[@]}; do
 	[[ "${i}" =~ ^# ]] && continue;
 	[[ -d "${i}" ]] && echo "* ${i} already exists, skipping." && continue;
 	echo "* Cloning $i into ${MI_CURR}/${i}..";
-	git clone ${MI_GITSERVER}:${i}.git
+	echo "git clone ${MI_GITSERVER}/${i}.git";
+	git clone ${MI_GITSERVER}/${i}.git
 done
