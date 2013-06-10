@@ -4,10 +4,14 @@
 # from git server listed in MI_HOME/etc/repos.conf.
 # Joyent 2013.
 
-# Set MI_HOME and get lib
+set -o errexit
+set -o pipefail
+set -o nounset
+#set -o xtrace
+
+# Set MI_HOME and source MI_HOME/lib/mibe.inc if exists
 MI_HOME=$(dirname $(cd ${0%/*} && pwd -P));
-source ${MI_HOME}/lib/mibe.inc;
-MI_CURR=$(pwd);
+[[ -s "${MI_HOME}/lib/mibe.inc" ]] && source ${MI_HOME}/lib/mibe.inc || { echo "* ERROR - ${MI_HOME}/lib/mibe.inc not found, can't continue."; exit 1; }
 
 # Get git server and repos list
 get_gitserver;
@@ -18,7 +22,6 @@ get_reposlist;
 for i in ${MI_REPOSLIST[@]}; do
 	[[ "${i}" =~ ^# ]] && continue;
 	[[ -d "${i}" ]] && echo "* ${i} already exists, skipping." && continue;
-	echo "* Cloning $i into ${MI_CURR}/${i}..";
-	echo "git clone ${MI_GITSERVER}/${i}.git";
+	echo "* Cloning ${MI_GITSERVER}/$i into ${i}..";
 	git clone ${MI_GITSERVER}/${i}.git
 done
