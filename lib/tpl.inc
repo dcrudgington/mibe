@@ -73,7 +73,7 @@ defaults() {
   case ${var} in
     tpl_version)        echo '0.0.0';;
     zpool)              echo 'zones';;
-    zfs_dumps)          echo 'zfs_dumps';;
+    zfs_dumps)          echo "${MI_HOME}/images";;
     assets_server)      echo 'assets.joyent.us';;
     customize_script)   echo 'copy/root/customize';;
     customize_network)  echo 'yes';;
@@ -94,6 +94,8 @@ check() {
       return $?
     ;;
     dump)
+      echo "Checking ${tpl_file}..";
+      exit 88;
       [ -f ${tpl_file} ]
       return $?
     ;;
@@ -157,7 +159,7 @@ dataset_snapshot() {
   eval "log_${FUNCNAME[0]}=done"
 }
 dataset_dump() {
-  log "* Sending dataset into a file..."
+  log "* Sending dataset into a file ${tpl_file}..."
   zfs send ${tpl_zpath}@final 2>/dev/null | bzip2 -9 > ${tpl_file}
   eval "log_${FUNCNAME[0]}=done"
 }
@@ -190,7 +192,7 @@ dataset_manifest() {
 
 #  file_time=$(/usr/bin/ls -l --time-style '+%t%FT%R%Z%t' ${file} |\
 #              /usr/bin/awk -F$'\t' '{print $2}' | /usr/bin/sed 's/UTC/Z/')
-  file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' | awk '{ print $6 }'
+  file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' | awk '{ print $6 }');
   file_hash=$(/usr/bin/digest -a sha1 ${file})
   file_size=$(/bin/ls -l ${file}|awk '{print $5}')
   dataset_uuid=$(uuid)
@@ -221,6 +223,169 @@ dataset_manifest() {
   ${tpl_users_block}
   ${tpl_restricted_to_block}
   "uuid": "${dataset_uuid}"
+}
+EOF
+  eval "log_${FUNCNAME[0]}=done"
+}
+dataset_manifest2() {
+  local file=${tpl_file}
+
+  for user in ${users}; do
+    tpl_users_snippet="${tpl_users_snippet+${tpl_users_snippet}, }{\"name\": \"${user}\"}"
+  done  
+  if [ -n "${tpl_users_snippet}" ]; then
+    tpl_users_block="\"users\": [ ${tpl_users_snippet} ],
+  \"generate_passwords\": true,"
+  fi
+  
+  if [ -n "${urn}" ]; then
+    tpl_urn_block="\"urn\": \"${urn}\","
+  fi
+
+  if [ -n "${minram}" ]; then
+    tpl_minram_block="\"minram\": \"${minram}\","
+  fi
+
+  for net in ${networks}; do
+    tpl_networks_snippet="${tpl_networks_snippet+${tpl_networks_snippet}, }{\"name\": \"${net}\", \"description\": \"${!net}\"}"
+  done
+  if [ -n "${tpl_networks_snippet}" ]; then
+    tpl_networks_block="\"networks\": [ ${tpl_networks_snippet} ]"
+  fi
+
+#  file_time=$(ls -l --time-style '+%t%FT%T%Z%t' ${file} |\
+#              /usr/bin/awk -F$'\t' '{print $2}' | /usr/bin/sed 's/UTC/Z/');
+  file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' | awk '{ print $6 }');
+  file_hash=$(/usr/bin/digest -a sha1 ${file});
+  file_size=$(/bin/ls -l ${file}|awk '{print $5}');
+  dataset_uuid=$(uuid);
+
+  if [ -n "${restricted_to_uuid}" ]; then
+    tpl_restricted_to_block="\"restricted_to_uuid\": \"${restricted_to_uuid}\","
+  fi
+
+  log "* Creating the dataset manifest..."
+  cat >${tpl_manifest} <<EOF
+{
+  "v": "2",
+  "uuid": "${dataset_uuid}",
+  "owner": "${owner_uuid}",
+  "name": "${tpl_name}",
+  "version": "${tpl_version}",
+  "state": "active",
+  "disabled": false,
+  "public": false,
+  "published_at": "${file_time}",
+  "type": "zone-dataset",
+  "os": "smartos",
+  "files": [
+    {
+      "sha1": "${file_hash}",
+      "size": ${file_size},
+      "compression": "bzip2"
+    }
+  ],
+  "description": "${description}",
+  "homepage": "${homepage}",
+  "urn": "sdc:sdc:${tpl_name}:${tpl_version}",
+  "requirements": {
+    ${tpl_minram_block}
+    ${tpl_networks_block}
+  },
+  ${tpl_users_block}
+  "tags": {
+    "role": "${role}"
+  },
+  "billing_tags": [
+    "${tpl_name}"
+  ]
+}
+EOF
+  eval "log_${FUNCNAME[0]}=done"
+}
+dataset_manifest3() {
+  local file=${tpl_file};
+
+  # Create users block for manifest
+  for user in ${users}; do
+    tpl_users_snippet="${tpl_users_snippet+${tpl_users_snippet}, }{\"name\": \"${user}\"}";
+  done
+  if [ -n "${tpl_users_snippet}" ]; then
+    tpl_users_block="\"users\": [ ${tpl_users_snippet} ],
+  \"generate_passwords\": true,";
+  else
+    tpl_users_block='"users": [ {"name": "root"}, {"name": "admin"} ],
+  "generate_passwords": true,';
+  fi
+
+  # Create minram block for manifest if exists
+  if [ -n "${minram}" ]; then
+    tpl_minram_block="\"minram\": \"${minram}\","
+  fi
+
+  # Create role block for manifest
+  if [ -n "${role}" ]; then
+    tpl_role_block="\"tags\": { \"role\": \"${role}\" },";
+  fi
+
+  # Create billing tags block for manifest if exists
+  if [ -n "${billingtags}" ]; then
+    tpl_billingtags_block="\"billing_tags\": [ \"${billingtags}\" ],";
+  fi
+
+  # Create homepage tags block for manifest if exists
+  if [ -n "${homepage}" ]; then
+    tpl_homepage_block="\"homepage\": \"${homepage}\",";
+  fi
+
+  # Create networks block for manifest if exists
+  for net in ${networks}; do
+    tpl_networks_snippet="${tpl_networks_snippet+${tpl_networks_snippet}, }{\"name\": \"${net}\", \"description\": \"${!net}\"}";
+  done
+  if [ -n "${tpl_networks_snippet}" ]; then
+    tpl_networks_block="\"networks\": [ ${tpl_networks_snippet} ]";
+  else
+    tpl_networks_block='"networks": [ {"name": "net0", "description": "public"} ]';
+  fi
+
+  # Get file details
+  file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' ${file} | awk '{ print $6 }');
+  file_hash=$(/usr/bin/digest -a sha1 ${file});
+  file_size=$(/bin/ls -l ${file}|awk '{print $5}');
+  dataset_uuid=$(uuid);
+  owner_uuid=$(uuid);
+
+log "* Creating the dataset manifest...";
+sed '/^[[:blank:]]*$/d' <<EOF > ${tpl_manifest}
+{ 
+  "v": "2",
+  "uuid": "${dataset_uuid}",
+  "owner": "${owner_uuid}",
+  "name": "${tpl_name}",
+  "version": "${tpl_version}",
+  "state": "active",
+  "disabled": false,
+  "public": false,
+  "published_at": "${file_time}",
+  "type": "zone-dataset",
+  "os": "smartos",
+  "files": [
+    {
+      "sha1": "${file_hash}",
+      "size": ${file_size},
+      "compression": "bzip2"
+    }
+  ],
+  "description": "${description}",
+  ${tpl_homepage_block}
+  "requirements": {
+    ${tpl_minram_block}
+    ${tpl_networks_block}
+  },
+  ${tpl_users_block}
+  ${tpl_role_block}
+  ${tpl_billingtags_block}
+  "urn": "sdc:sdc:${tpl_name}:${tpl_version}"
 }
 EOF
   eval "log_${FUNCNAME[0]}=done"
@@ -337,7 +502,7 @@ zone_create_motd() {
     PRODUCT=$(grep "product=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
     DS_NAME=$(grep "name=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
     DS_VERSION=$(grep "version=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
-    DS_DOC=$(grep "doc=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
+    DS_DOC=$(grep "homepage=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
     DS_BASE=$(echo ${base} | sed 's/-/ /g');
 
 cat > /${tpl_zpath}/root/etc/product <<EOF

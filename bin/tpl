@@ -38,9 +38,9 @@ fi
 if check dump; then
   log "- Dataset dump file already exists."
   if check manifest; then
-    dataset_manifest
+    dataset_manifest3
   else
-    dataset_manifest
+    dataset_manifest3
   fi
   # dataset_publish
   log "- Finished, nothing else to do."
@@ -52,7 +52,7 @@ if check dataset; then
   log "- Dataset already exists."
   if check final_snap; then
     dataset_dump
-    dataset_manifest
+    dataset_manifest3
     # dataset_publish
   else
     log "- Dataset exists, but no @final snapshot present."
@@ -149,7 +149,7 @@ fi
 
 dataset_snapshot
 dataset_dump
-dataset_manifest
+dataset_manifest3
 
 if [ ${customize_zone} == "yes" ]; then
   zone_restore_zonepath
