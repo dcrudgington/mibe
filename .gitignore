@@ -1,2 +1,3 @@
 users/
-bin/blah1
+bin/repo_init
+bin/repo_makeiso
