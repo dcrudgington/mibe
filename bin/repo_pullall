@@ -1,6 +1,7 @@
 #!/bin/bash
 #
-# git pulls all repositories listed in MI_HOME/etc/repos.list.
+# git pulls all repositories listed in MI_HOME/etc/repos.list
+# from git server listed in MI_HOME/etc/repos.conf.
 # Joyent 2013.
 
 set -o errexit
@@ -22,6 +23,6 @@ for i in ${MI_REPOSLIST[@]}; do
 	[[ "${i}" =~ ^# ]] && continue;
 	[[ ! -s "${i}/.git/config" ]] && echo "* ${i} doesn't exist, skipping." && continue;
 	echo "* Pulling ${MI_GITSERVER}/$i in $i..";
-	cd $i && git pull
+	cd $i && git pull || fail "* ERROR - Couldn't pull ${MI_GITSERVER}/${i}.git.";
 	cd ..
 done

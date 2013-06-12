@@ -23,5 +23,5 @@ for i in ${MI_REPOSLIST[@]}; do
 	[[ "${i}" =~ ^# ]] && continue;
 	[[ -d "${i}" ]] && echo "* ${i} already exists, skipping." && continue;
 	echo "* Cloning ${MI_GITSERVER}/$i into ${i}..";
-	git clone ${MI_GITSERVER}/${i}.git
+	git clone ${MI_GITSERVER}/${i}.git || fail "* ERROR - Couldn't clone ${MI_GITSERVER}/${i}.git.";
 done

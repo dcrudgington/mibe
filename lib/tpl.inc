@@ -188,8 +188,9 @@ dataset_manifest() {
     tpl_networks_block="\"networks\": [ ${tpl_networks_snippet} ]"
   fi
 
-  file_time=$(/usr/bin/ls -l --time-style '+%t%FT%R%Z%t' ${file} |\
-              /usr/bin/awk -F$'\t' '{print $2}' | /usr/bin/sed 's/UTC/Z/')
+#  file_time=$(/usr/bin/ls -l --time-style '+%t%FT%R%Z%t' ${file} |\
+#              /usr/bin/awk -F$'\t' '{print $2}' | /usr/bin/sed 's/UTC/Z/')
+  file_time=$(ls -l --time-style '+%Y-%m-%dT%H:%M:%SZ' | awk '{ print $6 }'
   file_hash=$(/usr/bin/digest -a sha1 ${file})
   file_size=$(/bin/ls -l ${file}|awk '{print $5}')
   dataset_uuid=$(uuid)
