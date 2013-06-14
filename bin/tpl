@@ -8,6 +8,7 @@ set -o errexit
 #set -o xtrace
 
 mi_home=$(dirname $(cd ${0%/*} && pwd -P));
+now=$(date +%Y-%m-%d_%H-%M-%S);
 
 if [ ! ${mi_home}/lib/tpl.inc ]; then
   echo "! Missing lib/tpl.inc file. Cannot continue."

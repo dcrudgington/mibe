@@ -78,7 +78,7 @@ defaults() {
     customize_script)   echo 'copy/root/customize';;
     customize_network)  echo 'yes';;
     customize_zone)     echo 'yes';;
-    log_dir)            echo 'logs';;
+    log_dir)            echo "${mi_home}/logs";;
   esac
 }
 check() {
@@ -477,14 +477,12 @@ zone_wait() {
 zone_customize() {
   log "* Executing the customize script..."
   result=$(zlogin ${zone_name} TPL_NAME=${tpl_name} /root/$(basename ${customize}) \
-           >/tmp/customize-stdout.log 2>&1 \
+           &> ${log_dir}/${tpl_name}-${tpl_version}-${now}.log \
            || echo $?)
   if [ ! ${result} ]; then
-#    rm /tmp/customize-stderr.log
     log "  OK"
   else
     log "  ERROR"
-    cat /tmp/customize-stderr.log >&2
     cleanup
     exit ${result}
   fi
