@@ -3,22 +3,45 @@ fail() {
 	exit 1;
 }
 get_gitserver() {
-	# Make sure MI_HOME/etc/repos.conf exists
-	[[ ! -f "${MI_HOME}/etc/repos.conf" ]] && fail "* ERROR - ${MI_HOME}/etc/repos.conf doesn't exist.";
+	# Make sure mi_home/etc/repos.conf exists
+	[[ ! -f "${mi_home}/etc/repos.conf" ]] && fail "* ERROR - ${mi_home}/etc/repos.conf doesn't exist.";
 
-	# Grab GITSERVER setting from MI_HOME/etc/repos.conf
-	MI_GITSERVER=$(grep "^GITSERVER=" ${MI_HOME}/etc/repos.conf | awk -F\" '{ print $2 }');
+	# Grab GITSERVER setting from mi_home/etc/repos.conf
+	mi_gitserver=$(grep "^GITSERVER=" ${mi_home}/etc/repos.conf | awk -F\" '{ print $2 }');
 
 	# Make sure GITSERVER is not empty
-	[[ ! -z "${MI_GITSERVER}" ]] || fail "* ERROR - Couldn't find git server in ${MI_HOME}/etc/repos.conf.";
+	[[ ! -z "${mi_gitserver}" ]] || fail "* ERROR - Couldn't find git server in ${mi_home}/etc/repos.conf.";
 
 	# Remove trailing slash if there is one
-	[[ ! ${MI_GITSERVER} = */ ]] || MI_GITSERVER=$(echo "${MI_GITSERVER}" | gsed '$s/.$//');
+	[[ ! ${mi_gitserver} = */ ]] || mi_gitserver=$(echo "${mi_gitserver}" | gsed '$s/.$//');
 }
 get_reposlist() {
-	# Make sure MI_HOME/etc/repos.list exists
-	[[ ! -f "${MI_HOME}/etc/repos.list" ]] && fail "* ERROR - ${MI_HOME}/etc/repos.list doesn't exist.";
+	# Make sure mi_home/etc/repos.list exists
+	[[ ! -f "${mi_home}/etc/repos.list" ]] && fail "* ERROR - ${mi_home}/etc/repos.list doesn't exist.";
 
 	# Grab repos.list
-	MI_REPOSLIST=$(cat ${MI_HOME}/etc/repos.list);
+	mi_reposlist=$(cat ${mi_home}/etc/repos.list);
+}
+get_reposlistlocal() {
+	# Make sure mi_home/etc/repos_local.list exists
+	[[ ! -f "${mi_home}/etc/repos_local.list" ]] && fail "* ERROR - ${mi_home}/etc/repos_local.list doesn't exist.";
+
+	# Grab repos.list
+	mi_reposlist=$(cat ${mi_home}/etc/repos_local.list);
+}
+get_gitserverlocal() {
+	# Make sure mi_home/etc/repos_local.conf exists
+	[[ ! -f "${mi_home}/etc/repos_local.conf" ]] && fail "* ERROR - ${mi_home}/etc/repos_local.conf doesn't exist.";
+
+	# Grab GITSERVER setting from mi_home/etc/repos_local.conf
+	mi_gitserver=$(grep "^GITSERVER=" ${mi_home}/etc/repos_local.conf | awk -F\" '{ print $2 }');
+
+	# Make sure GITSERVER is not empty
+	[[ ! -z "${mi_gitserver}" ]] || fail "* ERROR - Couldn't find git server in ${mi_home}/etc/repos_local.conf.";
+
+	# Remove trailing slash if there is one
+	[[ ! ${mi_gitserver} = */ ]] || mi_gitserver=$(echo "${mi_gitserver}" | gsed '$s/.$//');
+}
+get_reposdir() {
+	[[ "${HOME}" = "${mi_home}/users/${LOGNAME}" ]] && mi_reposdir="${mi_home}/users/${LOGNAME}" || mi_reposdir="${mi_home}/repos";
 }

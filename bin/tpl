@@ -1,18 +1,19 @@
 #!/usr/bin/bash
-# tpl v1.4
-# Joyent 'templatizer' script
+# tpl.mibe
+#
+# Copyright (c) 2011 Joyent Inc., All rights reserved.
 
 PATH=/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin:/usr/sfw/bin
+set -o errexit
+#set -o xtrace
 
-#set -x # show all commands.
-set -e # crash on all errors
-MI_HOME=$(dirname $(cd ${0%/*} && pwd -P));
+mi_home=$(dirname $(cd ${0%/*} && pwd -P));
 
-if [ ! ${MI_HOME}/lib/tpl.inc ]; then
+if [ ! ${mi_home}/lib/tpl.inc ]; then
   echo "! Missing lib/tpl.inc file. Cannot continue."
   exit 1
 else
-  source ${MI_HOME}/lib/tpl.inc
+  source ${mi_home}/lib/tpl.inc
 fi
 
 parse_args $@
@@ -133,6 +134,7 @@ if [ ${customize_zone} == "yes" ]; then
   zone_boot
   zone_wait boot
   zone_create_motd
+  zone_create_product
   zone_customize
 fi
 

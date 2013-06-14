@@ -1,3 +1,6 @@
 users/
 bin/repo_init
 bin/repo_makeiso
+bin/repo_cloneall_local
+bin/repo_pullall_local
+bin/repo_init_local

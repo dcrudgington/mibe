@@ -1,27 +1,28 @@
 #!/bin/bash
 #
-# git clones all repositories listed in MI_HOME/etc/repos.list
-# from git server listed in MI_HOME/etc/repos.conf.
-# Joyent 2013.
+# git clones all repositories listed in mi_home/etc/repos.list
+# from git server listed in mi_home/etc/repos.conf.
+#
+# Copyright (c) 2011 Joyent Inc., All rights reserved.
 
 set -o errexit
 set -o pipefail
 set -o nounset
 #set -o xtrace
 
-# Set MI_HOME and source MI_HOME/lib/mibe.inc if exists
-MI_HOME=$(dirname $(cd ${0%/*} && pwd -P));
-[[ -s "${MI_HOME}/lib/mibe.inc" ]] && source ${MI_HOME}/lib/mibe.inc || { echo "* ERROR - ${MI_HOME}/lib/mibe.inc not found, can't continue."; exit 1; }
+# Set mi_home and source mi_home/lib/mibe.inc if exists
+mi_home=$(dirname $(cd ${0%/*} && pwd -P));
+[[ -s "${mi_home}/lib/mibe.inc" ]] && source ${mi_home}/lib/mibe.inc || { echo "* ERROR - ${mi_home}/lib/mibe.inc not found, can't continue."; exit 1; }
 
 # Get git server and repos list
 get_gitserver;
 IFS=$'\n'
 get_reposlist;
 
-# Clone repositories in repos.conf 
-for i in ${MI_REPOSLIST[@]}; do
+# Clone repositories in repos.list
+for i in ${mi_reposlist[@]}; do
 	[[ "${i}" =~ ^# ]] && continue;
 	[[ -d "${i}" ]] && echo "* ${i} already exists, skipping." && continue;
-	echo "* Cloning ${MI_GITSERVER}/$i into ${i}..";
-	git clone ${MI_GITSERVER}/${i}.git || fail "* ERROR - Couldn't clone ${MI_GITSERVER}/${i}.git.";
+	echo "* Cloning ${mi_gitserver}/$i into ${i}..";
+	git clone ${mi_gitserver}/${i}.git || fail "* ERROR - Couldn't clone ${mi_gitserver}/${i}.git.";
 done

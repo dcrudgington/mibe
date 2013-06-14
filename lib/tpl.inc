@@ -1,4 +1,4 @@
-### function definitions for tpl
+### function definitions for tpl/mibe
 
 parse_args() {
 
@@ -73,7 +73,7 @@ defaults() {
   case ${var} in
     tpl_version)        echo '0.0.0';;
     zpool)              echo 'zones';;
-    zfs_dumps)          echo "${MI_HOME}/images";;
+    zfs_dumps)          echo "${mi_home}/images";;
     assets_server)      echo 'assets.joyent.us';;
     customize_script)   echo 'copy/root/customize';;
     customize_network)  echo 'yes';;
@@ -94,8 +94,6 @@ check() {
       return $?
     ;;
     dump)
-      echo "Checking ${tpl_file}..";
-      exit 88;
       [ -f ${tpl_file} ]
       return $?
     ;;
@@ -492,40 +490,25 @@ zone_customize() {
   fi
   eval "log_${FUNCNAME[0]}=done"
 }
-
-# Derek added zone_create_motd()
 zone_create_motd() {
-  log "* Creating motd and product file.."
+        if [[ -f "/${tpl_path}/motd" ]]; then
+		log "* Creating custom motd..";
+		sed -e "s!%brand%!${brand}!g" \
+	   	    -e "s!%name%!${name}!g" \
+		    -e "s!%version%!${version}!g" \
+		    -e "s!%homepage%!${homepage}!g" /${tpl_path}/motd > /${tpl_zpath}/root/etc/motd
+        fi
+}
+zone_create_product() {
+	log "* Creating product file..";
+    	ds_base=$(echo ${base} | sed 's/-/ /g');
 
-  # Copy in product,dataset,doc
-  if [[ -f "/${tpl_path}/manifest" ]]; then
-    PRODUCT=$(grep "product=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
-    DS_NAME=$(grep "name=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
-    DS_VERSION=$(grep "version=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
-    DS_DOC=$(grep "homepage=" /${tpl_path}/manifest | awk -F\" '{ print $2 }');
-    DS_BASE=$(echo ${base} | sed 's/-/ /g');
-
-cat > /${tpl_zpath}/root/etc/product <<EOF
-Name: ${PRODUCT}
-Image: ${DS_NAME} ${DS_VERSION}
-Base Image: ${DS_BASE}
-Documentation: ${DS_DOC}
-EOF
-
-        PRODUCT_END=$(grep "product=" /${tpl_path}/manifest | awk '{ print $2 }' | cut -d\" -f1);
-
-        # Fix /etc/motd
-cat > /${tpl_zpath}/root/etc/motd <<EOF
-   __        .                   .
- _|  |_      | .-. .  . .-. :--. |-
-|_    _|     ;|   ||  |(.-' |  | |
-  |__|   \`--'  \`-' \`;-| \`-' '  ' \`-'
-                   /  ; ${PRODUCT_END} (${DS_NAME} ${DS_VERSION})
-                   \`-'  ${DS_DOC}
-
-EOF
-
-fi
+	cat > /${tpl_zpath}/root/etc/product <<-EOF
+	Name: ${organization}
+	Image: ${name} ${version}
+	Base Image: ${ds_base}
+	Documentation: ${homepage}
+	EOF
 }
 zone_backup_zonepath() {
   local old_zpath=$(eval echo $(zonecfg -z ${zone_name} info zonepath 2>/dev/null | \
