@@ -85,8 +85,7 @@ if [ ${customize_zone} == "yes" ]; then
   else
     error "Template needs a zone for the customize phase, however, zone
   was not specified, or doesn't exist. Use your preferred provisioning
-  method to create a zone first, and pass to tpl using the -z arg, or
-  record its name in ~/.tplbuild as 'zone_name=your_zone_name'."
+  method to create a zone first, and pass to tpl using the -z arg."
   fi
 fi
 
@@ -127,7 +126,6 @@ fi
 
 ### start processing the template
 
-#preboot_copy
 preboot_copy_new
 preboot_unpack
 
@@ -136,6 +134,7 @@ if [ ${customize_zone} == "yes" ]; then
   zone_wait boot
   zone_create_motd
   zone_create_product
+  zone_packages
   zone_customize
 fi
 

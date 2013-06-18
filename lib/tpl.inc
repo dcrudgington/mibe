@@ -13,13 +13,6 @@ parse_args() {
   #   4. The script defaults will be applied where appropriate (configuration
   #      bit missing from command line args, .tplbuild or template manifest).
 
-  for config_file in ${PWD}/.tplbuild ~/.tplbuild; do
-    if [ -f "${config_file}" ]; then
-      source ${config_file}
-      break
-    fi
-  done
-
   while getopts "a:b:c:d:u:v:z:" option; do
     case ${option} in
       a) assets_server=${OPTARGS} ;;
@@ -71,11 +64,11 @@ parse_config() {
 defaults() {
   local var=$1
   case ${var} in
-    tpl_version)        echo '0.0.0';;
+    tpl_version)        echo '1.0.0';;
     zpool)              echo 'zones';;
     zfs_dumps)          echo "${mi_home}/images";;
-    assets_server)      echo 'assets.joyent.us';;
-    customize_script)   echo 'copy/root/customize';;
+    assets_server)      echo 'server.joyent.us';;
+    customize_script)   echo 'customize';;
     customize_network)  echo 'yes';;
     customize_zone)     echo 'yes';;
     log_dir)            echo "${mi_home}/logs";;
@@ -157,7 +150,7 @@ dataset_snapshot() {
   eval "log_${FUNCNAME[0]}=done"
 }
 dataset_dump() {
-  log "* Sending dataset into a file ${tpl_file}..."
+  log "* Sending dataset into ${tpl_file}..."
   zfs send ${tpl_zpath}@final 2>/dev/null | bzip2 -9 > ${tpl_file}
   eval "log_${FUNCNAME[0]}=done"
 }
@@ -477,20 +470,43 @@ zone_wait() {
 zone_customize() {
   log "* Executing the customize script..."
   result=$(zlogin ${zone_name} TPL_NAME=${tpl_name} /root/$(basename ${customize}) \
-           &> ${log_dir}/${tpl_name}-${tpl_version}-${now}.log \
+           1> ${log_dir}/${tpl_name}-${tpl_version}-${now}-output.log \
+ 	   2> ${log_dir}/${tpl_name}-${tpl_version}-${now}-error.log \
            || echo $?)
   if [ ! ${result} ]; then
     log "  OK"
   else
     log "  ERROR"
+    cat ${log_dir}/${tpl_name}-${tpl_version}-${now}-error.log >&2
     cleanup
     exit ${result}
   fi
   eval "log_${FUNCNAME[0]}=done"
 }
+zone_packages() {
+  if [[ -f "${tpl_path}/packages" ]]; then
+    log "* Installing the packages list...";
+    IFS=$'\n\r';
+    packages=($(cat ${tpl_path}/packages));
+    unset IFS;
+    resultp=$(zlogin ${zone_name} \
+              PATH=/opt/local/gnu/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
+              pkg_add -v ${packages[@]} 1> ${log_dir}/${tpl_name}-${tpl_version}-${now}-output.log \
+              2> ${log_dir}/${tpl_name}-${tpl_version}-${now}-error.log || echo $?); 
+    if [ ! ${resultp} ]; then
+      log "  OK";
+    else
+      log "  ERROR";
+      cat ${log_dir}/${tpl_name}-${tpl_version}-${now}-error.log >&2
+      cleanup
+      exit ${resultp}
+    fi
+  fi
+  eval "log_${FUNCNAME[0]}=done";
+}
 zone_create_motd() {
         if [[ -f "/${tpl_path}/motd" ]]; then
-		log "* Creating custom motd..";
+		log "* Creating /etc/motd..";
 		sed -e "s!%brand%!${brand}!g" \
 	   	    -e "s!%name%!${name}!g" \
 		    -e "s!%version%!${version}!g" \
@@ -498,11 +514,11 @@ zone_create_motd() {
         fi
 }
 zone_create_product() {
-	log "* Creating product file..";
+	log "* Creating /etc/product..";
     	ds_base=$(echo ${base} | sed 's/-/ /g');
 
 	cat > /${tpl_zpath}/root/etc/product <<-EOF
-	Name: ${organization}
+	Name: ${organization} ${brand}
 	Image: ${name} ${version}
 	Base Image: ${ds_base}
 	Documentation: ${homepage}
@@ -582,20 +598,23 @@ preboot_copy() {
   eval "log_${FUNCNAME[0]}=done"
 }
 
-# Derek added preboot_copy_new()
+# New preboot_copy_new()
 preboot_copy_new() {
   log "* Copying in template files..."
   copy_dir=(${tpl_path}/copy ${copy_dir})
   for dir in ${copy_dir[@]}; do
     if [ -d ${dir} ]; then
-      SUBDIRS=$(find ${dir} | egrep -v "/copy$");
-      (cd ${dir} && gtar -c . | gtar -C /${tpl_zpath}/root -x )
-      for i in ${SUBDIRS[@]}; do
-        NEWDIR=$(echo ${i} | gawk -F"copy" '{ print $2 }');
-        chown root:root /${tpl_zpath}/root/${NEWDIR}
-      done
+      if [[ $(gfind ${dir} -maxdepth 1 -mindepth 1 -type d) ]]; then
+        subdirs=$(find ${dir} | egrep -v "/copy$");
+        (cd ${dir} && gtar -c . | gtar -C /${tpl_zpath}/root -x )
+        for i in ${subdirs[@]}; do
+          newdir=$(echo ${i} | gawk -F"copy" '{ print $2 }');
+          chown root:root /${tpl_zpath}/root/${newdir}
+        done
+      fi
     fi
   done
+  cp /${tpl_path}/customize /${tpl_zpath}/root/root
   eval "log_${FUNCNAME[0]}=done"
 }
   
@@ -647,49 +666,31 @@ Arguments and options:
                         be relative or absolute path. It is expected to hold
                         the 'customize' script and other support files.
   -b BASE               The base dataset. Full name without the zpool prefix
-                        (e.g. 'proto' or 'smartos-1.2.3').
+                        (e.g. 'base64-13.1.0' or 'smartos-1.2.3').
   -c COPY_DIR           Additional directory to look in for files to copy
                         into the template dataset ('copy' under template
                         directory is always looked in).
   -d ZFS_DIRECTORY      Directory where dataset dump files and manifests
-                        should be created (default: current directory).
-  -u UNPACK_DIR         Additional directory to look in for files to unpack
-                        into the template dataset ('unpack' under template
-                        directory is always looked in).
-  -v VERSION            Version number for the new dataset. Should be of the
-                        form "X.Y.Z", see <http://bit.ly/fgaNe4>. Defaults to
-                        "0.0.0", but you really don't want that.
+                        should be created (default: mi_home/images).
+  -v VERSION            Version number for the new dataset.  Uses version
+                        setting in manifest file. 
   -z ZONE_NAME          Name of zone to use for templating. No default value
                         will be set. The zone must exist and working
                         networking is assumed (if needed).
 
 Examples:
 
-  # Create a new nodejs template, based on bare.
-  tpl nodejs
-
-  # Create a nodejs-1.2.3 dataset, based on bare, and point tpl-nodejs to it.
-  tpl -b smartos-1.0.1 -z tplnodejs -v 1.2.3 tpl-nodejs
-
-Config files:
-
-  Two files can be created to for configuration: ~/.tplbuild for system-wide
-  options, and TEMPLATE/manifest for per template configuration. Typically,
-  you'll want to set these two to appropriate values in ~/.tplbuild:
-
-    zfs_dumps=/opt/tpl/zfsdumps
-    zone_name=tplbuild
-
-  For an example of the latter file, refer to tpl-sample/manifest.
+  - Create a example-1.0.0 image, based on base64-13.1.0,
+    using zone 7b710ee4-d82c-11e2-adf8-333114999cf4 
+  
+  # tpl -b base64-13.1.0 -z 7b710ee4-d82c-11e2-adf8-333114999cf4 -v 1.0.0 mi-example
 
 EOF
 }
 show_welcome_message() {
 cat <<EOF
 
-tpl - the Joyent templatizer script
-
-About to create a template dataset of ${tpl_zpath}.
+Creating a Machine Image of ${tpl_path}.
 
 EOF
 }
