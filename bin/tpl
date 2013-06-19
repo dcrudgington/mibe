@@ -134,6 +134,7 @@ if [ ${customize_zone} == "yes" ]; then
   zone_wait boot
   zone_create_motd
   zone_create_product
+  zone_pkgin
   zone_packages
   zone_customize
 fi

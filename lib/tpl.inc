@@ -504,6 +504,22 @@ zone_packages() {
   fi
   eval "log_${FUNCNAME[0]}=done";
 }
+zone_pkgin() {
+  log "* Updating pkgsrc list... ";
+  resultk=$(zlogin ${zone_name} \
+            PATH=/opt/local/gnu/bin:/opt/local/bin:/opt/local/sbin:/usr/bin:/usr/sbin \
+            pkgin -f -y up 1> ${log_dir}/${tpl_name}-${tpl_version}-${now}-output.log \
+            2> ${log_dir}/${tpl_name}-${tpl_version}-${now}-error.log || echo $?); 
+  if [ ! ${resultk} ]; then
+    log "  OK";
+  else
+    log "  ERROR";
+    cat ${log_dir}/${tpl_name}-${tpl_version}-${now}-error.log >&2
+    cleanup
+    exit ${resultk}
+  fi
+  eval "log_${FUNCNAME[0]}=done";
+}
 zone_create_motd() {
         if [[ -f "/${tpl_path}/motd" ]]; then
 		log "* Creating /etc/motd..";
@@ -512,6 +528,7 @@ zone_create_motd() {
 		    -e "s!%version%!${version}!g" \
 		    -e "s!%homepage%!${homepage}!g" /${tpl_path}/motd > /${tpl_zpath}/root/etc/motd
         fi
+	eval "log_${FUNCNAME[0]}=done";
 }
 zone_create_product() {
 	log "* Creating /etc/product..";
@@ -523,6 +540,7 @@ zone_create_product() {
 	Base Image: ${ds_base}
 	Documentation: ${homepage}
 	EOF
+	eval "log_${FUNCNAME[0]}=done";
 }
 zone_backup_zonepath() {
   local old_zpath=$(eval echo $(zonecfg -z ${zone_name} info zonepath 2>/dev/null | \
@@ -604,7 +622,8 @@ preboot_copy_new() {
   copy_dir=(${tpl_path}/copy ${copy_dir})
   for dir in ${copy_dir[@]}; do
     if [ -d ${dir} ]; then
-      if [[ $(gfind ${dir} -maxdepth 1 -mindepth 1 -type d) ]]; then
+      if [[ $(ls -d ${dir}/*/ 2>/dev/null) ]]; then
+#      if [[ $(gfind ${dir} -maxdepth 1 -mindepth 1 -type d) ]]; then
         subdirs=$(find ${dir} | egrep -v "/copy$");
         (cd ${dir} && gtar -c . | gtar -C /${tpl_zpath}/root -x )
         for i in ${subdirs[@]}; do
