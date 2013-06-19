@@ -75,3 +75,5 @@ To build an example image we specify the base image as the uuid of base/base64 w
 
     # cd /opt/mibe/repos
     # tpl -b 9eac5c0c-a941-11e2-a7dc-57a6b041988f -z 991e1640-d8f3-11e2-b7ca-9fde7e2f67c6 mi-example
+
+The built image will be stored at mi_home/images/example-1.0.0.*
