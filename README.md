@@ -16,6 +16,25 @@
         # imgadm import $(imgadm avail | awk '/base64/ { print $1 }' | tail -1)
 
 ----
+## Layout
+
+* mi_home/bin - Holds scripts to handle repository operations and build images.
+
+    * bin/repo_cloneall - Clones latest Joyent Machine Image repositories into mi_home/repos.
+    * bin/repo_pullall - Pulls latest Joyent Machine Image repositories into mi_home/repos.
+    * bin/repo_init - Initializes a new Machine Image repository and populates standard build files.
+    * bin/tpl - Builds SmartOS images.
+
+* mi_home/etc - Where configuration files for repositories are kept.
+
+    * etc/repos.conf - Git server repository configuration on where to get Machine Image repos from.
+    * etc/repos.list - Git repository list of Joyent Machine Image repositories. This is updated as we make more images public.
+
+* mi_home/images - Final image dumps are put here.
+* mi_home/logs - Logging directory for image builds.
+* mi_home/repos - Build repositories.
+
+----
 ## Usage
 
 Clone the mibe repository in /opt (or wherever has space to store image files):
