@@ -28,7 +28,7 @@
 * mi_home/etc - Where configuration files for repositories are kept.
 
     * etc/repos.conf - Git server repository configuration on where to get Machine Image repos from.
-    * etc/repos.list - Git repository list of Joyent Machine Image repositories. This is updated as we make more images public.
+    * etc/repos.list - Git repository list of Joyent Machine Image repositories. This is updated as more images are made public.
 
 * mi_home/images - Final image dumps are stored here.
 * mi_home/logs - Logging directory for image builds.
