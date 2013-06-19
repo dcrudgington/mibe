@@ -30,7 +30,7 @@
     * etc/repos.conf - Git server repository configuration on where to get Machine Image repos from.
     * etc/repos.list - Git repository list of Joyent Machine Image repositories. This is updated as we make more images public.
 
-* mi_home/images - Final image dumps are put here.
+* mi_home/images - Final image dumps are stored here.
 * mi_home/logs - Logging directory for image builds.
 * mi_home/repos - Build repositories.
 
