@@ -11,7 +11,7 @@
 
         # pkgin install scmgit
 
-* Import base/base64 image to build images from:
+* Import latest base/base64 image to build images from:
 
         # imgadm import $(imgadm avail | awk '/base64/ { print $1 }' | tail -1)
 
